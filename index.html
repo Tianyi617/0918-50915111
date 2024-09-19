@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪刀石頭布遊戲</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        img {
+            width: 100px;
+            height: 100px;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            background-color: transparent;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        img:hover {
+            transform: scale(1.05);
+            background-color: lightblue;
+            /* 更改背景顏色 */
+        }
+
+        .scoreboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* 自定義動畫 */
+        .fadeIn {
+            animation: fadeIn 0.5s forwards;
+        }
+
+        .fadeOut {
+            animation: fadeOut 0.5s forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+    <h1>剪刀石頭布大挑戰！</h1>
+    <div class="button-container">
+        <img id="rock" src="rock.png" alt="石頭" data-text="石頭">
+        <img id="paper" src="paper.png" alt="布" data-text="布">
+        <img id="scissors" src="scissors.png" alt="剪刀" data-text="剪刀">
+    </div>
+    <div class="scoreboard" id="scoreboard">你: 0 - 電腦: 0</div>
+
+    <audio id="winSound" src="win.mp3"></audio>
+    <audio id="loseSound" src="lose.mp3"></audio>
+    <audio id="drawSound" src="draw.mp3"></audio>
+
+    <script>
+        const choices = ["石頭", "布", "剪刀"];
+        let userWins = 0;
+        let computerWins = 0;
+        const scoreboard = document.getElementById("scoreboard");
+        const winSound = document.getElementById("winSound");
+        const loseSound = document.getElementById("loseSound");
+        const drawSound = document.getElementById("drawSound");
+
+        document.getElementById("rock").addEventListener("click", () => playGame("石頭"));
+        document.getElementById("paper").addEventListener("click", () => playGame("布"));
+        document.getElementById("scissors").addEventListener("click", () => playGame("剪刀"));
+
+        // 更改滑鼠移動時圖片上的文字
+        const images = document.querySelectorAll('img');
+        images.forEach(image => {
+            image.addEventListener('mouseenter', () => {
+                image.alt = `你選擇了 ${image.dataset.text}`;
+            });
+            image.addEventListener('mouseleave', () => {
+                image.alt = image.dataset.text;
+            });
+        });
+
+        function updateScoreboard() {
+            scoreboard.textContent = `你: ${userWins} - 電腦: ${computerWins}`;
+        }
+
+        function playGame(userChoice) {
+            const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+            let result;
+            let title;
+            let icon;
+
+            // 在每次新回合開始之前，先停止並重設所有音效
+            winSound.pause();
+            loseSound.pause();
+            drawSound.pause();
+            winSound.currentTime = 0;  // 重設音效播放進度
+            loseSound.currentTime = 0;
+            drawSound.currentTime = 0;
+
+            // 判斷遊戲結果
+            if (userChoice === computerChoice) {
+                title = "平手！";
+                result = `你選擇了: ${userChoice} <br> 電腦選擇了: ${computerChoice}`;
+                icon = "info";
+                drawSound.play(); // 平手播放 drawSound
+            } else if (
+                (userChoice === "石頭" && computerChoice === "剪刀") ||
+                (userChoice === "布" && computerChoice === "石頭") ||
+                (userChoice === "剪刀" && computerChoice === "布")
+            ) {
+                userWins++;
+                title = "你贏了！";
+                result = `你選擇了: ${userChoice} <br> 電腦選擇了: ${computerChoice}`;
+                icon = "success";
+                winSound.play(); // 贏了播放 winSound
+            } else {
+                computerWins++;
+                title = "你輸了！";
+                result = `你選擇了: ${userChoice} <br> 電腦選擇了: ${computerChoice}`;
+                icon = "error";
+                loseSound.play(); // 輸了播放 loseSound
+            }
+
+            updateScoreboard();
+
+            // 檢查是否達到 3 次勝利或失敗
+            if (userWins === 3 || computerWins === 3) {
+                title = userWins === 3 ? "你是贏家！" : "電腦是贏家！";
+                result += `<br><strong>最終結果:</strong> 你 ${userWins} - ${computerWins} 電腦`;
+                Swal.fire({
+                    title: title,
+                    html: result,
+                    icon: userWins === 3 ? "success" : "error",
+                    confirmButtonText: '重新開始遊戲！',
+                    showClass: {
+                        popup: 'fadeIn'
+                    },
+                    hideClass: {
+                        popup: 'fadeOut'
+                    }
+                }).then(() => {
+                    resetGame();
+                });
+            } else {
+                Swal.fire({
+                    title: title,
+                    html: result,
+                    icon: icon,
+                    confirmButtonText: '再試一次！',
+                    showClass: {
+                        popup: 'fadeIn'
+                    },
+                    hideClass: {
+                        popup: 'fadeOut'
+                    }
+                });
+            }
+        }
+
+
+
+        function resetGame() {
+            userWins = 0;
+            computerWins = 0;
+            updateScoreboard();
+        }
+    </script>
+</body>
+
+</html>
